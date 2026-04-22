@@ -20,6 +20,7 @@ struct EngineStats {
     int totalSearches;
     int promotions;
     int bplusLeafCapacity;
+    int promotionThreshold;
 };
 
 class AdaptiveIndexingEngine {
@@ -29,6 +30,7 @@ public:
     void insert(int key, const std::string& value);
     /** Clears AVL and B+ data and resets search/promotion counters. */
     void setBplusLeafCapacity(int leafCapacity);
+    void setPromotionThreshold(int threshold);
     std::optional<SearchResponse> search(int key);
     EngineStats stats() const;
     std::vector<AVLNodeInfo> avlSnapshot() const;

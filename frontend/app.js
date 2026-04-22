@@ -154,11 +154,17 @@ const bplusThreshDisplay = $("bplus-thresh-display");
 
 const vizArea = $("viz-area");
 
+function getPromotionThreshold() {
+  return parseInt(threshSlider.value, 10) || lastAppliedPromotionThreshold || 3;
+}
+
 /** Avoid overwriting B+ slider while user is dragging */
+let promotionThresholdUserAdjusting = false;
 let bplusThreshUserAdjusting = false;
 let bplusStartupUserEditing = false;
 let bplusStartupPromptShown = false;
 /** Last value confirmed by server (skip redundant /config calls) */
+let lastAppliedPromotionThreshold = 3;
 let lastAppliedBplusCap = 4;
 
 /* Keep last known stats for statistics tab */
@@ -388,7 +394,7 @@ insertBtn.addEventListener("click", async () => {
 
     const data = await res.json();
     const loc  = data.location || "B+ Tree";
-    const thresh = parseInt(threshSlider.value, 10) || 3;
+    const thresh = getPromotionThreshold();
 
     setStatus(insertStatus, `Inserted key ${data.key} into ${loc}.`, "ok");
     addOp("Insert", data.key, loc);
@@ -439,12 +445,17 @@ searchBtn.addEventListener("click", async () => {
   const prevPromotions = lastStats.promotions;
 
   try {
-    const res = await fetch(`${API}/search?q=${encodeURIComponent(key)}`);
+    const thresh = getPromotionThreshold();
+    const res = await fetch(
+      `${API}/search?q=${encodeURIComponent(key)}&promotionThreshold=${encodeURIComponent(String(thresh))}`
+    );
     if (!res.ok) throw new Error("not found");
 
     const data = await res.json();
     const loc  = data.location || "B+ Tree";
-    const thresh = parseInt(threshSlider.value, 10) || 3;
+    if (data.promotionThreshold !== undefined) {
+      syncPromotionThresholdFromServer(data.promotionThreshold);
+    }
 
     setStatus(searchStatus,
       `Found key ${data.key} = "${data.value}"  |  ${loc}  |  access #${data.accessCount}`,
@@ -509,8 +520,63 @@ resetBtn.addEventListener("click", () => {
 /* ═══════════════════════════════════════════════════════════
    THRESHOLD SLIDER
 ═══════════════════════════════════════════════════════════ */
+function syncPromotionThresholdFromServer(value) {
+  const n = Math.max(1, Math.min(10, parseInt(value, 10) || 3));
+  lastAppliedPromotionThreshold = n;
+  if (threshDisplay) threshDisplay.textContent = String(n);
+  if (threshSlider && !promotionThresholdUserAdjusting) {
+    threshSlider.value = String(n);
+  }
+}
+
+async function applyPromotionThreshold() {
+  const threshold = getPromotionThreshold();
+  if (threshold === lastAppliedPromotionThreshold) return;
+
+  try {
+    const res = await fetch(`${API}/config?promotionThreshold=${encodeURIComponent(String(threshold))}`);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || res.statusText || "Server error");
+    }
+
+    syncPromotionThresholdFromServer(data.promotionThreshold || threshold);
+    showToast({
+      title: "Promotion Threshold Updated",
+      msg: `Keys now promote after <strong>${lastAppliedPromotionThreshold}</strong> search${lastAppliedPromotionThreshold === 1 ? "" : "es"}.`,
+      type: "ok",
+      duration: 3200
+    });
+    await fetchStatsWithStatus();
+  } catch (err) {
+    syncPromotionThresholdFromServer(lastAppliedPromotionThreshold);
+    showToast({
+      title: "Promotion Threshold Failed",
+      msg: err.message || "Could not update the server threshold.",
+      type: "error",
+      duration: 4000
+    });
+  }
+}
+
+const beginPromotionThresholdDrag = () => {
+  promotionThresholdUserAdjusting = true;
+  const done = () => {
+    promotionThresholdUserAdjusting = false;
+    document.removeEventListener("mouseup", done);
+    document.removeEventListener("touchend", done);
+  };
+  document.addEventListener("mouseup", done);
+  document.addEventListener("touchend", done);
+};
+
+threshSlider.addEventListener("mousedown", beginPromotionThresholdDrag);
+threshSlider.addEventListener("touchstart", beginPromotionThresholdDrag, { passive: true });
 threshSlider.addEventListener("input", () => {
   threshDisplay.textContent = threshSlider.value;
+});
+threshSlider.addEventListener("change", () => {
+  void applyPromotionThreshold();
 });
 
 function updateBplusThreshHint(n) {
@@ -866,8 +932,9 @@ function renderAVL(nodes) {
 
   assignXY(root, NODE_R + 5, svgW - NODE_R - 5, 0);
 
+  const threshold = getPromotionThreshold();
   const promoted = new Set(
-    nodes.filter(n => (parseInt(n.accessCount, 10) || 0) >= 3).map(n => n.key)
+    nodes.filter(n => (parseInt(n.accessCount, 10) || 0) >= threshold).map(n => n.key)
   );
 
   drawEdges(root, avlSvg);
@@ -981,6 +1048,10 @@ async function fetchStatsWithStatus() {
     const promos   = parseInt(d.promotions,     10) || 0;
     const searches = parseInt(d.totalSearches,  10) || 0;
     const bpCap = parseInt(d.bplusLeafCapacity, 10);
+    const promotionThreshold = parseInt(d.promotionThreshold, 10);
+    if (d.promotionThreshold !== undefined && !promotionThresholdUserAdjusting) {
+      syncPromotionThresholdFromServer(promotionThreshold);
+    }
     if (d.bplusLeafCapacity !== undefined && !bplusThreshUserAdjusting) {
       syncBplusThreshFromServer(bpCap);
     }
@@ -1025,7 +1096,7 @@ function renderStatsDashboard(d) {
   const bpCount  = parseInt(d.bplusNodeCount, 10) || 0;
   const promos   = parseInt(d.promotions,     10) || 0;
   const searches = parseInt(d.totalSearches,  10) || 0;
-  const thresh   = parseInt(threshSlider.value, 10) || 3;
+  const thresh   = getPromotionThreshold();
   const total    = avlCount + bpCount;
 
   // Timestamp

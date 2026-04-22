@@ -118,14 +118,15 @@ All successful JSON responses use string values for integer fields (Crow `wvalue
 | `GET` | `/` | Health / status JSON. |
 | `GET` | `/insert?key=INT&value=STRING` | Insert or update a key. Response includes `location` (`AVL Tree` or `B+ Tree`) and `accessCount`. |
 | `GET` | `/search?q=INT` | Search by key. Increments B+ access count when found there; may promote to AVL. `404` if missing. |
-| `GET` | `/stats` | Counters, `bplusLeafCapacity`, `avlNodes`, `bplusLeaves` (snapshots for the dashboard). |
+| `GET` | `/stats` | Counters, `bplusLeafCapacity`, `promotionThreshold`, `avlNodes`, `bplusLeaves` (snapshots for the dashboard). |
 | `GET` | `/config?bplusLeafCapacity=N` | Set B+ **split threshold**; when a leaf reaches `N` keys it splits. `N` must be **2-256**. **Clears all AVL and B+ data** and resets search/promotion counters. |
+| `GET` | `/config?promotionThreshold=N` | Set the **promotion threshold**. `N` must be **1-10**. Does not clear existing data. |
 
 `OPTIONS` is supported where needed for CORS preflight.
 
 ### `GET /stats` (summary)
 
-- `avlNodeCount`, `bplusNodeCount`, `totalSearches`, `promotions`, `bplusLeafCapacity` — stringified integers  
+- `avlNodeCount`, `bplusNodeCount`, `totalSearches`, `promotions`, `bplusLeafCapacity`, `promotionThreshold` — stringified integers  
 - `avlNodes` — list of `{ key, value, accessCount }`  
 - `bplusLeaves` — list of leaves `{ id, entries: [{ key, value, accessCount }, ...] }`
 
@@ -139,7 +140,7 @@ All successful JSON responses use string values for integer fields (Crow `wvalue
 ## Dashboard notes
 
 - **B+ threshold** slider (sidebar): changing the value and releasing applies **`/config`** and clears all data (same as API).
-- **Promotion threshold** slider: controls **UI hints** (e.g. progress toward promotion). Server-side promotion still uses the default compiled into `AdaptiveIndexingEngine` (typically **3** searches) unless you change the C++ constructor in `main.cpp`.
+- **Promotion threshold** slider: changing the value and releasing applies **`/config?promotionThreshold=N`**. Keys promote when their B+ access count reaches that value.
 
 ---
 

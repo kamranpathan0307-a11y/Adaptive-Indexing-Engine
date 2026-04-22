@@ -1,5 +1,7 @@
 #include "engine.h"
 
+#include <algorithm>
+
 AdaptiveIndexingEngine::AdaptiveIndexingEngine(int promotionThreshold, int bplusLeafCapacity)
     : avl_(),
       bplus_(bplusLeafCapacity),
@@ -12,6 +14,10 @@ void AdaptiveIndexingEngine::setBplusLeafCapacity(int leafCapacity) {
     bplus_.reconfigure(leafCapacity);
     totalSearches_ = 0;
     promotions_    = 0;
+}
+
+void AdaptiveIndexingEngine::setPromotionThreshold(int threshold) {
+    promotionThreshold_ = std::max(1, threshold);
 }
 
 void AdaptiveIndexingEngine::insert(int key, const std::string& value) {
@@ -34,7 +40,7 @@ std::optional<SearchResponse> AdaptiveIndexingEngine::search(int key) {
         return std::nullopt;
     }
 
-    if (bplusResult->accessCount > promotionThreshold_) {
+    if (bplusResult->accessCount >= promotionThreshold_) {
         if (auto promoted = bplus_.remove(key)) {
             avl_.insert(key, promoted->value, promoted->accessCount);
             ++promotions_;
@@ -53,6 +59,7 @@ EngineStats AdaptiveIndexingEngine::stats() const {
         totalSearches_,
         promotions_,
         bplus_.leafCapacity(),
+        promotionThreshold_,
     };
 }
 

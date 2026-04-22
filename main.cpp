@@ -80,6 +80,21 @@ int main() {
             return make_error("missing q");
         }
 
+        auto promotionParam = req.url_params.get("promotionThreshold");
+        if (promotionParam) {
+            int threshold = 0;
+            try {
+                threshold = std::stoi(promotionParam);
+            } catch (const std::exception&) {
+                return make_error("promotionThreshold must be an integer", 400);
+            }
+
+            if (threshold < 1 || threshold > 10)
+                return make_error("promotionThreshold must be between 1 and 10", 400);
+
+            engine.setPromotionThreshold(threshold);
+        }
+
         int key = std::stoi(keyParam);
         auto result = engine.search(key);
         if (!result) {
@@ -91,6 +106,8 @@ int main() {
         payload["value"] = result->value;
         payload["location"] = result->location;
         payload["accessCount"] = to_string_value(result->accessCount);
+        payload["promotionThreshold"] =
+            to_string_value(engine.stats().promotionThreshold);
 
         return make_json_response(payload);
     });
@@ -106,6 +123,7 @@ int main() {
         payload["totalSearches"] = to_string_value(stats.totalSearches);
         payload["promotions"]    = to_string_value(stats.promotions);
         payload["bplusLeafCapacity"] = to_string_value(stats.bplusLeafCapacity);
+        payload["promotionThreshold"] = to_string_value(stats.promotionThreshold);
 
         // AVL tree snapshot — use push_back for list; all ints via to_string_value
         auto avlNodes = engine.avlSnapshot();
@@ -147,28 +165,51 @@ int main() {
         if (req.method == "OPTIONS")
             return make_cors_preflight();
         if (req.method != "GET")
-            return make_error("GET required (use ?bplusLeafCapacity=N)", 405);
+            return make_error("GET required (use ?bplusLeafCapacity=N and/or ?promotionThreshold=N)", 405);
 
         auto capParam = req.url_params.get("bplusLeafCapacity");
-        if (!capParam)
-            return make_error("missing bplusLeafCapacity query parameter", 400);
+        auto promotionParam = req.url_params.get("promotionThreshold");
+        if (!capParam && !promotionParam)
+            return make_error("missing bplusLeafCapacity or promotionThreshold query parameter", 400);
 
-        int cap = 0;
-        try {
-            cap = std::stoi(capParam);
-        } catch (const std::exception&) {
-            return make_error("bplusLeafCapacity must be an integer", 400);
+        bool cleared = false;
+        if (capParam) {
+            int cap = 0;
+            try {
+                cap = std::stoi(capParam);
+            } catch (const std::exception&) {
+                return make_error("bplusLeafCapacity must be an integer", 400);
+            }
+
+            if (cap < 2 || cap > 256)
+                return make_error("bplusLeafCapacity must be between 2 and 256", 400);
+
+            engine.setBplusLeafCapacity(cap);
+            cleared = true;
         }
 
-        if (cap < 2 || cap > 256)
-            return make_error("bplusLeafCapacity must be between 2 and 256", 400);
+        if (promotionParam) {
+            int threshold = 0;
+            try {
+                threshold = std::stoi(promotionParam);
+            } catch (const std::exception&) {
+                return make_error("promotionThreshold must be an integer", 400);
+            }
 
-        engine.setBplusLeafCapacity(cap);
+            if (threshold < 1 || threshold > 10)
+                return make_error("promotionThreshold must be between 1 and 10", 400);
+
+            engine.setPromotionThreshold(threshold);
+        }
+
+        auto stats = engine.stats();
 
         crow::json::wvalue payload;
-        payload["bplusLeafCapacity"] = to_string_value(cap);
-        payload["note"] =
-            "All AVL and B+ data was cleared; search and promotion counters were reset.";
+        payload["bplusLeafCapacity"] = to_string_value(stats.bplusLeafCapacity);
+        payload["promotionThreshold"] = to_string_value(stats.promotionThreshold);
+        payload["note"] = cleared
+            ? "All AVL and B+ data was cleared; search and promotion counters were reset."
+            : "Promotion threshold updated.";
         return make_json_response(payload);
     });
 
