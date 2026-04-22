@@ -1,0 +1,3 @@
+C:/Kamran Btech/Sem 4/ADS/New/adaptive-indexing-engine/build/CMakeFiles/adaptive-indexing-engine.dir
+C:/Kamran Btech/Sem 4/ADS/New/adaptive-indexing-engine/build/CMakeFiles/ALL_BUILD.dir
+C:/Kamran Btech/Sem 4/ADS/New/adaptive-indexing-engine/build/CMakeFiles/ZERO_CHECK.dir

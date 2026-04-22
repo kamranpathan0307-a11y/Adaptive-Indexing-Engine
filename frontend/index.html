@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Adaptive Indexing Engine</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="app">
+
+  <!-- ═══════════════════════════════
+       HEADER
+  ═══════════════════════════════ -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="4.5" r="2.5"/>
+          <circle cx="4.5" cy="19" r="2.5"/>
+          <circle cx="19.5" cy="19" r="2.5"/>
+          <line x1="12" y1="7" x2="4.5"  y2="16.5"/>
+          <line x1="12" y1="7" x2="19.5" y2="16.5"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <span class="brand-name">Adaptive Indexing Engine</span>
+        <span class="brand-sub">Data Structure Laboratory &mdash; AVL + B+ Tree</span>
+      </div>
+    </div>
+    <nav class="nav-tabs" id="nav-tabs">
+      <button class="tab active" data-tab="insert">Insert</button>
+      <button class="tab"        data-tab="search">Search</button>
+      <button class="tab"        data-tab="statistics">Statistics</button>
+      <button class="tab"        data-tab="docs">Documentation</button>
+    </nav>
+    <div class="server-dot" id="server-dot" title="Server status">
+      <span class="dot dot-offline"></span>
+      <span class="dot-label" id="dot-label">Offline</span>
+    </div>
+  </header>
+
+  <!-- Server offline banner -->
+  <div id="offline-banner" class="offline-banner hidden">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="8" cy="8" r="6"/>
+      <line x1="8" y1="5" x2="8" y2="8.5"/>
+      <circle cx="8" cy="11" r=".6" fill="currentColor" stroke="none"/>
+    </svg>
+    Server offline &mdash; run <code>./build/Debug/adaptive-indexing-engine.exe</code> then refresh.
+  </div>
+
+  <main class="main">
+
+    <!-- ═══════════════════════════════
+         ACTION PANELS (tab-switched)
+    ═══════════════════════════════ -->
+
+    <!-- INSERT PANEL -->
+    <div id="panel-insert" class="panel active">
+      <div class="card action-card">
+        <div class="panel-head">
+          <span class="panel-icon icon-teal">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2">
+              <circle cx="10" cy="10" r="8"/>
+              <line x1="10" y1="6"  x2="10" y2="14"/>
+              <line x1="6"  y1="10" x2="14" y2="10"/>
+            </svg>
+          </span>
+          <h2>Insert Key-Value Pair</h2>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="insert-key">Key <span class="lhint">(integer)</span></label>
+            <input id="insert-key" type="number" placeholder="e.g. 42" autocomplete="off"/>
+          </div>
+          <div class="field field-wide">
+            <label for="insert-value">Value <span class="lhint">(string)</span></label>
+            <input id="insert-value" type="text" placeholder="e.g. student_record" autocomplete="off"/>
+          </div>
+          <button id="insert-btn" class="btn-primary">Insert</button>
+        </div>
+        <div class="status-line" id="insert-status">System idle — waiting for input.</div>
+      </div>
+    </div>
+
+    <!-- SEARCH PANEL -->
+    <div id="panel-search" class="panel">
+      <div class="card action-card">
+        <div class="panel-head">
+          <span class="panel-icon icon-blue">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2">
+              <circle cx="8.5" cy="8.5" r="5.5"/>
+              <line x1="13" y1="13" x2="17" y2="17"/>
+            </svg>
+          </span>
+          <h2>Search Key</h2>
+        </div>
+        <div class="form-row">
+          <div class="field field-wide">
+            <label for="search-key">Key <span class="lhint">(integer)</span></label>
+            <input id="search-key" type="number" placeholder="e.g. 42" autocomplete="off"/>
+          </div>
+          <button id="reset-btn"  class="btn-ghost">Clear</button>
+          <button id="search-btn" class="btn-primary">Search</button>
+        </div>
+        <div class="status-line" id="search-status">System idle — waiting for input.</div>
+      </div>
+    </div>
+
+    <!-- STATISTICS PANEL — Full Dashboard -->
+    <div id="panel-statistics" class="panel">
+
+      <!-- Dashboard Banner -->
+      <div class="dash-banner">
+        <div class="dash-banner-left">
+          <div class="dash-banner-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="3" width="20" height="14" rx="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+              <polyline points="6,11 9,8 12,11 15,8 18,11"/>
+            </svg>
+          </div>
+          <div>
+            <div class="dash-title">Engine Dashboard</div>
+            <div class="dash-subtitle">Adaptive Indexing Engine &mdash; Real-time Analytics</div>
+          </div>
+        </div>
+        <div class="dash-banner-right">
+          <div class="dash-live-pill">
+            <span class="dash-live-dot"></span>
+            <span>Live</span>
+          </div>
+          <div class="dash-updated" id="dash-updated">Waiting for data&hellip;</div>
+        </div>
+      </div>
+
+      <!-- KPI Cards Row -->
+      <div class="dash-kpi-row">
+
+        <div class="dash-kpi-card kpi-teal">
+          <div class="kpi-icon-wrap">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="10" cy="3.5" r="2.5"/>
+              <circle cx="3.5" cy="16" r="2.5"/>
+              <circle cx="16.5" cy="16" r="2.5"/>
+              <line x1="10" y1="6" x2="3.5"  y2="13.5"/>
+              <line x1="10" y1="6" x2="16.5" y2="13.5"/>
+            </svg>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-val" id="sc-avl">0</div>
+            <div class="kpi-label">AVL Tree Nodes</div>
+            <div class="kpi-desc">Hot keys in memory cache</div>
+          </div>
+        </div>
+
+        <div class="dash-kpi-card kpi-blue">
+          <div class="kpi-icon-wrap">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+              <rect x="1.5" y="7" width="17" height="6" rx="1.5"/>
+              <line x1="7"  y1="7" x2="7"  y2="13"/>
+              <line x1="13" y1="7" x2="13" y2="13"/>
+            </svg>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-val" id="sc-bplus">0</div>
+            <div class="kpi-label">B+ Tree Nodes</div>
+            <div class="kpi-desc">Cold keys in primary store</div>
+          </div>
+        </div>
+
+        <div class="dash-kpi-card kpi-green">
+          <div class="kpi-icon-wrap">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="10" cy="10" r="8"/>
+              <polyline points="10,5 10,10 14,12.5"/>
+            </svg>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-val" id="sc-searches">0</div>
+            <div class="kpi-label">Total Searches</div>
+            <div class="kpi-desc">Cumulative lookup operations</div>
+          </div>
+        </div>
+
+        <div class="dash-kpi-card kpi-orange">
+          <div class="kpi-icon-wrap">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+              <polyline points="3,17 10,3 17,17"/>
+              <line x1="6.5" y1="12" x2="13.5" y2="12"/>
+            </svg>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-val" id="sc-promotions">0</div>
+            <div class="kpi-label">Promotions</div>
+            <div class="kpi-desc">B+ &rarr; AVL migrations</div>
+          </div>
+        </div>
+
+        <div class="dash-kpi-card kpi-purple">
+          <div class="kpi-icon-wrap">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M3 10 Q6 4 10 4 Q14 4 17 10 Q14 16 10 16 Q6 16 3 10Z"/>
+              <circle cx="10" cy="10" r="2.5"/>
+            </svg>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-val" id="sc-cache">0%</div>
+            <div class="kpi-label">Cache Hit Ratio</div>
+            <div class="kpi-desc">AVL nodes / total keys</div>
+          </div>
+        </div>
+
+      </div><!-- /dash-kpi-row -->
+
+      <!-- Middle Row: Distribution + Efficiency -->
+      <div class="dash-mid-row">
+
+        <!-- Memory Distribution -->
+        <div class="dash-card dash-dist-card">
+          <div class="dash-card-head">
+            <h3 class="dash-card-title">Memory Distribution</h3>
+            <span class="dash-card-badge">Storage Split</span>
+          </div>
+          <div class="dist-bar-wrap">
+            <div class="dist-bar">
+              <div class="dist-seg dist-seg-avl"   id="dist-seg-avl"   style="width:0%"></div>
+              <div class="dist-seg dist-seg-bplus" id="dist-seg-bplus" style="width:100%"></div>
+            </div>
+            <div class="dist-legend">
+              <div class="dist-leg-item">
+                <div class="dist-leg-dot dist-dot-avl"></div>
+                <span>AVL Tree</span>
+                <strong id="dist-avl-pct">0%</strong>
+              </div>
+              <div class="dist-leg-sep">&middot;</div>
+              <div class="dist-leg-item">
+                <div class="dist-leg-dot dist-dot-bplus"></div>
+                <span>B+ Tree</span>
+                <strong id="dist-bplus-pct">100%</strong>
+              </div>
+              <div class="dist-leg-sep">&middot;</div>
+              <div class="dist-leg-item">
+                <span>Total</span>
+                <strong id="dist-total">0 keys</strong>
+              </div>
+            </div>
+          </div>
+          <div class="dist-metrics-row">
+            <div class="dist-metric">
+              <div class="dist-metric-val" id="dm-total-keys">0</div>
+              <div class="dist-metric-lbl">Total Keys</div>
+            </div>
+            <div class="dist-metric">
+              <div class="dist-metric-val" style="color:var(--teal-dark)" id="dm-hot-keys">0</div>
+              <div class="dist-metric-lbl">Hot (AVL)</div>
+            </div>
+            <div class="dist-metric">
+              <div class="dist-metric-val" style="color:var(--blue-dark)" id="dm-cold-keys">0</div>
+              <div class="dist-metric-lbl">Cold (B+)</div>
+            </div>
+            <div class="dist-metric">
+              <div class="dist-metric-val" style="color:var(--orange)" id="dm-promo-rate">0%</div>
+              <div class="dist-metric-lbl">Promo Rate</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Efficiency Card -->
+        <div class="dash-card dash-eff-card">
+          <div class="dash-card-head">
+            <h3 class="dash-card-title">Lookup Efficiency</h3>
+            <span class="dash-card-badge">Performance</span>
+          </div>
+          <div class="eff-rows">
+            <div class="eff-row">
+              <div class="eff-label">
+                <div class="eff-dot eff-dot-avl"></div>
+                Hot Keys (AVL)
+              </div>
+              <div class="eff-bar-wrap">
+                <div class="eff-bar eff-bar-avl" id="eff-bar-avl" style="width:0%"></div>
+              </div>
+              <div class="eff-pct" id="eff-pct-avl">0%</div>
+            </div>
+            <div class="eff-row">
+              <div class="eff-label">
+                <div class="eff-dot eff-dot-bplus"></div>
+                Cold Keys (B+)
+              </div>
+              <div class="eff-bar-wrap">
+                <div class="eff-bar eff-bar-bplus" id="eff-bar-bplus" style="width:100%"></div>
+              </div>
+              <div class="eff-pct" id="eff-pct-bplus">100%</div>
+            </div>
+          </div>
+          <div class="eff-complexity">
+            <div class="eff-cx-item">
+              <div class="eff-cx-badge badge-teal">O(log n)</div>
+              <div class="eff-cx-desc">AVL lookup</div>
+            </div>
+            <div class="eff-cx-item">
+              <div class="eff-cx-badge badge-blue">O(n/k)</div>
+              <div class="eff-cx-desc">B+ scan</div>
+            </div>
+          </div>
+          <div class="eff-threshold-row">
+            <span class="eff-thresh-lbl">Promotion threshold</span>
+            <span class="eff-thresh-val" id="eff-thresh-val">3 searches</span>
+          </div>
+        </div>
+
+      </div><!-- /dash-mid-row -->
+
+      <!-- Tables Row: Hot Keys + Cold Keys -->
+      <div class="dash-tables-row">
+
+        <div class="dash-card">
+          <div class="dash-card-head">
+            <h3 class="dash-card-title">
+              <span class="dash-title-dot dot-avl-color"></span>
+              Hot Keys &mdash; AVL Cache
+            </h3>
+            <span class="dash-card-count" id="hot-count">0 keys</span>
+          </div>
+          <div class="dash-table-wrap">
+            <table class="dash-table">
+              <thead>
+                <tr><th>Key</th><th>Value</th><th>Accesses</th><th>Heat</th></tr>
+              </thead>
+              <tbody id="dash-avl-tbody"></tbody>
+            </table>
+            <div class="dash-empty hidden" id="dash-avl-empty">No hot keys yet &mdash; search a key 3+ times to promote it.</div>
+          </div>
+        </div>
+
+        <div class="dash-card">
+          <div class="dash-card-head">
+            <h3 class="dash-card-title">
+              <span class="dash-title-dot dot-bplus-color"></span>
+              Cold Keys &mdash; B+ Tree
+            </h3>
+            <span class="dash-card-count" id="cold-count">0 keys</span>
+          </div>
+          <div class="dash-table-wrap">
+            <table class="dash-table">
+              <thead>
+                <tr><th>Key</th><th>Value</th><th>Accesses</th><th>To Promote</th></tr>
+              </thead>
+              <tbody id="dash-bplus-tbody"></tbody>
+            </table>
+            <div class="dash-empty hidden" id="dash-bplus-empty">No B+ Tree entries yet &mdash; insert keys to begin.</div>
+          </div>
+        </div>
+
+      </div><!-- /dash-tables-row -->
+
+    </div><!-- /panel-statistics -->
+
+    <!-- DOCUMENTATION PANEL -->
+    <div id="panel-docs" class="panel">
+      <div class="card docs-card">
+        <h2 class="docs-title">How Adaptive Indexing Works</h2>
+        <p class="docs-intro">
+          The Adaptive Indexing Engine combines a B+ Tree and an AVL Tree to achieve optimal
+          performance across cold and hot data access patterns by automatically migrating
+          frequently accessed keys to a faster in-memory structure.
+        </p>
+
+        <div class="docs-sections">
+
+          <div class="docs-sec">
+            <div class="docs-sec-head">
+              <span class="docs-num">01</span>
+              <h3>B+ Tree &mdash; Primary Storage</h3>
+            </div>
+            <p>All key-value pairs are initially inserted into the B+ Tree. It provides efficient
+            ordered storage with O(log n) lookup. Leaf nodes are linked sequentially, enabling
+            fast range queries and full traversal.</p>
+          </div>
+
+          <div class="docs-sec">
+            <div class="docs-sec-head">
+              <span class="docs-num">02</span>
+              <h3>AVL Tree &mdash; Hot Key Cache</h3>
+            </div>
+            <p>Frequently accessed keys are promoted to the AVL Tree once their access count
+            reaches the promotion threshold (default: 3 searches). The AVL Tree maintains
+            strict balance factor |&Delta;| &le; 1, guaranteeing O(log n) worst-case performance.</p>
+          </div>
+
+          <div class="docs-sec">
+            <div class="docs-sec-head">
+              <span class="docs-num">03</span>
+              <h3>Promotion Mechanism</h3>
+            </div>
+            <p>Every search increments the key's access counter in B+ Tree. When the counter
+            reaches the threshold, the engine promotes that entry to the AVL Tree. Subsequent
+            searches check the AVL Tree first, yielding faster average-case performance.</p>
+          </div>
+
+          <div class="docs-sec">
+            <div class="docs-sec-head">
+              <span class="docs-num">04</span>
+              <h3>Visualization Guide</h3>
+            </div>
+            <ul class="docs-list">
+              <li><strong>Teal circles</strong> — regular AVL Tree nodes</li>
+              <li><strong>Amber circles</strong> — promoted (hot) keys in AVL Tree</li>
+              <li><strong>h: / &Delta;:</strong> — node height and balance factor labels</li>
+              <li><strong>Blue blocks</strong> — B+ Tree leaf node cells</li>
+              <li><strong>&rarr; arrows</strong> — linked-list pointers between leaves</li>
+              <li><strong>Scale pulse</strong> — one-shot animation on insert or search</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="complexity-block">
+          <h3>Complexity Reference</h3>
+          <table class="complexity-table">
+            <thead>
+              <tr><th>Operation</th><th>B+ Tree</th><th>AVL Tree</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Insert</td>         <td>O(log n)</td> <td>O(log n)</td></tr>
+              <tr><td>Search (cold key)</td><td>O(log n)</td><td>—</td></tr>
+              <tr><td>Search (hot key)</td> <td>—</td>       <td>O(log n)*</td></tr>
+              <tr><td>Range Query</td>     <td>O(log n + k)</td><td>O(n)</td></tr>
+            </tbody>
+          </table>
+          <p class="complexity-note">* AVL yields better constants due to in-memory access vs. disk I/O.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════
+         VISUALIZATION AREA
+         (visible on Insert + Search only)
+    ═══════════════════════════════ -->
+    <div id="viz-area">
+
+      <div class="viz-row">
+
+        <!-- AVL TREE -->
+        <div class="card viz-card">
+          <div class="viz-head">
+            <div class="viz-head-left">
+              <h2>AVL Tree</h2>
+              <span class="badge badge-teal">In-Memory</span>
+            </div>
+            <span class="viz-hint">h = height &nbsp;|&nbsp; &Delta; = balance factor</span>
+          </div>
+          <div class="viz-body" id="avl-body">
+            <svg id="avl-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+            <div id="avl-placeholder" class="placeholder">
+              No AVL nodes yet.<br>
+              Search a key <strong>3&times;</strong> to promote it here.
+            </div>
+          </div>
+        </div>
+
+        <!-- B+ TREE -->
+        <div class="card viz-card">
+          <div class="viz-head">
+            <div class="viz-head-left">
+              <h2>B+ Tree</h2>
+              <span class="badge badge-blue">Disk-Based</span>
+            </div>
+            <span class="viz-hint">Hover a cell to see access count</span>
+          </div>
+          <div class="viz-body" id="bplus-body">
+            <div id="bplus-view" class="bplus-wrap"></div>
+            <div id="bplus-placeholder" class="placeholder">
+              No B+ leaves yet.<br>
+              Insert a key to begin.
+            </div>
+          </div>
+        </div>
+
+        <!-- LIVE STATS SIDEBAR -->
+        <div class="card stats-side">
+          <h2 class="side-title">Live Statistics</h2>
+
+          <div class="side-stat">
+            <div class="side-stat-icon teal-box">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+                <circle cx="10" cy="3.5" r="2.5"/>
+                <circle cx="3.5" cy="16" r="2.5"/>
+                <circle cx="16.5" cy="16" r="2.5"/>
+                <line x1="10" y1="6" x2="3.5"  y2="13.5"/>
+                <line x1="10" y1="6" x2="16.5" y2="13.5"/>
+              </svg>
+            </div>
+            <span class="side-stat-lbl">AVL Nodes</span>
+            <span class="side-stat-val" id="stat-avl">0</span>
+          </div>
+
+          <div class="side-stat">
+            <div class="side-stat-icon blue-box">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+                <rect x="1.5" y="7" width="17" height="6" rx="1.5"/>
+                <line x1="7"  y1="7" x2="7"  y2="13"/>
+                <line x1="13" y1="7" x2="13" y2="13"/>
+              </svg>
+            </div>
+            <span class="side-stat-lbl">B+ Nodes</span>
+            <span class="side-stat-val" id="stat-bplus">0</span>
+          </div>
+
+          <div class="side-stat">
+            <div class="side-stat-icon green-box">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+                <circle cx="10" cy="10" r="8"/>
+                <polyline points="10,5 10,10 14,12.5"/>
+              </svg>
+            </div>
+            <span class="side-stat-lbl">Cache Ratio</span>
+            <span class="side-stat-val accent-teal" id="stat-cache">0%</span>
+          </div>
+
+          <div class="side-stat">
+            <div class="side-stat-icon orange-box">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+                <polyline points="3,17 10,3 17,17"/>
+                <line x1="6.5" y1="12" x2="13.5" y2="12"/>
+              </svg>
+            </div>
+            <span class="side-stat-lbl">Promotions</span>
+            <span class="side-stat-val" id="stat-migrated">0</span>
+          </div>
+
+          <div class="thresh-block">
+            <div class="thresh-row">
+              <span class="thresh-lbl">B+ threshold</span>
+              <span class="thresh-val thresh-val-blue" id="bplus-thresh-display">4</span>
+            </div>
+            <input type="range" id="bplus-thresh-slider" class="thresh-range thresh-range-blue" min="2" max="256" value="4" step="1" title="Split when a B+ leaf reaches this many keys"/>
+            <div class="thresh-ticks">
+              <span>2</span><span>64</span><span>128</span><span>192</span><span>256</span>
+            </div>
+            <p class="thresh-sub" id="bplus-thresh-hint"></p>
+            <p class="thresh-sub thresh-sub-warn">Changing this clears all data and resets counters.</p>
+          </div>
+
+          <div class="thresh-block">
+            <div class="thresh-row">
+              <span class="thresh-lbl">Promotion threshold</span>
+              <span class="thresh-val" id="thresh-display">3</span>
+            </div>
+            <input type="range" id="thresh-slider" class="thresh-range" min="1" max="10" value="3"/>
+            <div class="thresh-ticks">
+              <span>1</span><span>3</span><span>5</span><span>7</span><span>10</span>
+            </div>
+            <p class="thresh-sub">Searches on a B+ key before it can promote to the AVL tree.</p>
+          </div>
+        </div>
+
+      </div><!-- /viz-row -->
+
+      <!-- RECENT OPERATIONS TABLE -->
+      <div class="card ops-card">
+        <div class="ops-head">
+          <h2>Recent Operations</h2>
+          <div style="display:flex;gap:.5rem;">
+            <button id="browse-btn" class="btn-ghost">Browse All Data</button>
+            <button id="clear-btn" class="btn-ghost">Clear</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="ops-table">
+            <thead>
+              <tr>
+                <th>Key</th>
+                <th>Operation</th>
+                <th>Structure</th>
+              </tr>
+            </thead>
+            <tbody id="recent-ops"></tbody>
+          </table>
+          <div id="ops-empty" class="ops-empty">No operations yet. Insert or search a key above.</div>
+        </div>
+      </div>
+
+    </div><!-- /viz-area -->
+
+  </main>
+</div><!-- /app -->
+
+<!-- ═══════════════════════════════
+     BROWSE DATA POPUP
+═══════════════════════════════ -->
+<div id="browse-popup" class="popup-overlay hidden" role="dialog" aria-modal="true">
+  <div class="popup-backdrop" id="browse-popup-backdrop"></div>
+  <div class="popup-card browse-card">
+
+    <div class="popup-header browse-header">
+      <div class="popup-header-icon browse-header-icon">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2">
+          <rect x="3" y="3" width="14" height="14" rx="2"/>
+          <line x1="7"  y1="7"  x2="13" y2="7"/>
+          <line x1="7"  y1="10" x2="13" y2="10"/>
+          <line x1="7"  y1="13" x2="10" y2="13"/>
+        </svg>
+      </div>
+      <div class="popup-header-text">
+        <div class="popup-title">Browse All Data</div>
+        <div class="popup-subtitle" id="browse-subtitle">All keys stored in the engine</div>
+      </div>
+      <button class="popup-close" id="browse-popup-close" aria-label="Close">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4">
+          <line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="popup-body browse-body">
+      <!-- Filter bar -->
+      <div class="browse-filter-row">
+        <input type="text" id="browse-search" class="browse-search-input" placeholder="Filter by key or value…" />
+        <div class="browse-filter-chips">
+          <button class="browse-chip active" data-filter="all">All</button>
+          <button class="browse-chip" data-filter="avl">AVL Tree</button>
+          <button class="browse-chip" data-filter="bplus">B+ Tree</button>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="browse-table-wrap">
+        <table class="browse-table">
+          <thead>
+            <tr>
+              <th>Key</th>
+              <th>Value</th>
+              <th>Location</th>
+              <th>Access&nbsp;Count</th>
+            </tr>
+          </thead>
+          <tbody id="browse-tbody"></tbody>
+        </table>
+        <div id="browse-empty" class="browse-empty hidden">No entries match your filter.</div>
+        <div id="browse-no-data" class="browse-empty">No data inserted yet.</div>
+      </div>
+    </div>
+
+    <div class="popup-footer">
+      <button class="btn-ghost" id="browse-popup-dismiss">Close</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     TOAST CONTAINER
+═══════════════════════════════ -->
+<div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+<!-- ═══════════════════════════════
+     STARTUP B+ THRESHOLD POPUP
+════════════════════════════════ -->
+<div id="bplus-startup-popup" class="popup-overlay hidden" role="dialog" aria-modal="true">
+  <div class="popup-backdrop startup-backdrop"></div>
+  <div class="popup-card bplus-startup-card">
+
+    <div class="popup-header bplus-startup-header">
+      <div class="popup-header-icon bplus-startup-icon">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="1.5" y="7" width="17" height="6" rx="1.5"/>
+          <line x1="7" y1="7" x2="7" y2="13"/>
+          <line x1="13" y1="7" x2="13" y2="13"/>
+        </svg>
+      </div>
+      <div class="popup-header-text">
+        <div class="popup-title">Set B+ Tree Threshold</div>
+        <div class="popup-subtitle">Choose the key count where a leaf splits.</div>
+      </div>
+    </div>
+
+    <div class="popup-body bplus-startup-body">
+      <div class="startup-threshold-readout">
+        <span class="startup-readout-label">Split threshold</span>
+        <span class="startup-readout-value" id="startup-bplus-display">4</span>
+      </div>
+
+      <div class="startup-threshold-controls">
+        <input type="range" id="startup-bplus-slider" class="thresh-range thresh-range-blue" min="2" max="256" value="4" step="1"/>
+        <input type="number" id="startup-bplus-input" min="2" max="256" value="4" autocomplete="off"/>
+      </div>
+
+      <div class="startup-threshold-meta">
+        <span>Min 2</span>
+        <span>Max 256</span>
+      </div>
+
+      <p class="startup-threshold-hint" id="startup-bplus-hint">
+        A leaf splits when it reaches this value. If threshold is 5, the 5th key triggers the split.
+      </p>
+      <div class="status-line startup-status" id="startup-bplus-status">Waiting for your threshold.</div>
+    </div>
+
+    <div class="popup-footer">
+      <button class="btn-primary bplus-startup-apply" id="startup-bplus-apply">
+        Apply Threshold
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     SEARCH RESULT POPUP
+═══════════════════════════════ -->
+<div id="search-popup" class="popup-overlay hidden" role="dialog" aria-modal="true">
+  <div class="popup-backdrop" id="search-popup-backdrop"></div>
+  <div class="popup-card search-result-card">
+
+    <div class="popup-header" id="sr-header">
+      <div class="popup-header-icon" id="sr-header-icon">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2">
+          <circle cx="8.5" cy="8.5" r="5.5"/>
+          <line x1="13" y1="13" x2="17" y2="17"/>
+        </svg>
+      </div>
+      <div class="popup-header-text">
+        <div class="popup-title">Search Result</div>
+        <div class="popup-subtitle" id="sr-location-label">—</div>
+      </div>
+      <button class="popup-close" id="search-popup-close" aria-label="Close">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2">
+          <line x1="3" y1="3" x2="13" y2="13"/>
+          <line x1="13" y1="3" x2="3" y2="13"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="popup-body">
+      <div class="sr-kv-grid">
+        <div class="sr-kv-item">
+          <div class="sr-kv-label">Key</div>
+          <div class="sr-kv-val mono" id="sr-key">—</div>
+        </div>
+        <div class="sr-kv-item">
+          <div class="sr-kv-label">Value</div>
+          <div class="sr-kv-val" id="sr-value">—</div>
+        </div>
+        <div class="sr-kv-item">
+          <div class="sr-kv-label">Location</div>
+          <div class="sr-kv-val" id="sr-location-badge">—</div>
+        </div>
+      </div>
+
+      <div class="sr-progress-block">
+        <div class="sr-progress-row">
+          <span class="sr-progress-label">Access Count</span>
+          <span class="sr-progress-count">
+            <span id="sr-access">0</span>
+            &nbsp;/&nbsp;
+            <span id="sr-threshold">3</span>
+          </span>
+        </div>
+        <div class="sr-progress-track">
+          <div class="sr-progress-fill" id="sr-progress-fill"></div>
+        </div>
+        <div class="sr-progress-hint" id="sr-progress-hint">
+          Keep searching to promote to AVL Tree
+        </div>
+      </div>
+    </div>
+
+    <div class="popup-footer">
+      <button class="btn-ghost popup-dismiss" id="search-popup-dismiss">Close</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     PROMOTION CELEBRATION POPUP
+═══════════════════════════════ -->
+<div id="promo-popup" class="popup-overlay hidden" role="dialog" aria-modal="true">
+  <div class="popup-backdrop" id="promo-popup-backdrop"></div>
+  <div class="popup-card promo-card">
+
+    <div class="promo-confetti-row" id="promo-confetti" aria-hidden="true"></div>
+
+    <div class="promo-header">
+      <div class="promo-icon-ring">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3,17 10,3 17,17"/>
+          <line x1="6.5" y1="12" x2="13.5" y2="12"/>
+        </svg>
+      </div>
+      <div class="promo-title">Key Promoted!</div>
+      <div class="promo-subtitle">Hot data migrated to faster in-memory cache</div>
+    </div>
+
+    <div class="promo-key-pill">
+      <span class="promo-key-label">Key</span>
+      <span class="promo-key-val" id="promo-key">—</span>
+    </div>
+
+    <div class="promo-flow">
+      <div class="promo-from">
+        <div class="promo-tree-icon bplus-icon">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+            <rect x="1.5" y="7" width="17" height="6" rx="1.5"/>
+            <line x1="7"  y1="7" x2="7"  y2="13"/>
+            <line x1="13" y1="7" x2="13" y2="13"/>
+          </svg>
+        </div>
+        <div class="promo-tree-name">B+ Tree</div>
+        <div class="promo-tree-desc">Primary Storage</div>
+      </div>
+
+      <div class="promo-arrow-track">
+        <div class="promo-arrow-line"></div>
+        <div class="promo-arrow-head">&#8594;</div>
+        <div class="promo-arrow-label">Promote</div>
+      </div>
+
+      <div class="promo-to">
+        <div class="promo-tree-icon avl-icon">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="10" cy="3.5" r="2.5"/>
+            <circle cx="3.5" cy="16" r="2.5"/>
+            <circle cx="16.5" cy="16" r="2.5"/>
+            <line x1="10" y1="6"  x2="3.5"  y2="13.5"/>
+            <line x1="10" y1="6"  x2="16.5" y2="13.5"/>
+          </svg>
+        </div>
+        <div class="promo-tree-name">AVL Tree</div>
+        <div class="promo-tree-desc">Hot Key Cache</div>
+      </div>
+    </div>
+
+    <div class="promo-info-row">
+      <div class="promo-info-item">
+        <div class="promo-info-label">Access Count</div>
+        <div class="promo-info-val" id="promo-access">—</div>
+      </div>
+      <div class="promo-info-item">
+        <div class="promo-info-label">Search Speed</div>
+        <div class="promo-info-val accent-green">O(log n) ↑</div>
+      </div>
+      <div class="promo-info-item">
+        <div class="promo-info-label">Total Promotions</div>
+        <div class="promo-info-val accent-orange" id="promo-total">—</div>
+      </div>
+    </div>
+
+    <div class="promo-message">
+      Future lookups for this key bypass the B+ Tree entirely, hitting the
+      AVL cache directly for faster worst-case <strong>O(log n)</strong> performance.
+    </div>
+
+    <button class="btn-primary promo-got-it" id="promo-close">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2">
+        <polyline points="2,9 6,13 14,4"/>
+      </svg>
+      Got it
+    </button>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     INSERT SUCCESS POPUP
+═══════════════════════════════ -->
+<div id="insert-popup" class="popup-overlay hidden" role="dialog" aria-modal="true">
+  <div class="popup-backdrop" id="insert-popup-backdrop"></div>
+  <div class="popup-card insert-result-card">
+
+    <div class="popup-header insert-header">
+      <div class="popup-header-icon insert-header-icon">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2">
+          <circle cx="10" cy="10" r="8"/>
+          <line x1="10" y1="6" x2="10" y2="14"/>
+          <line x1="6"  y1="10" x2="14" y2="10"/>
+        </svg>
+      </div>
+      <div class="popup-header-text">
+        <div class="popup-title">Insert Successful</div>
+        <div class="popup-subtitle">Key-value pair stored in B+ Tree</div>
+      </div>
+      <button class="popup-close" id="insert-popup-close" aria-label="Close">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2">
+          <line x1="3" y1="3" x2="13" y2="13"/>
+          <line x1="13" y1="3" x2="3" y2="13"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="popup-body">
+      <div class="insert-kv-display">
+        <div class="insert-kv-pair">
+          <div class="insert-kv-key" id="ins-key-display">—</div>
+          <div class="insert-kv-arrow">→</div>
+          <div class="insert-kv-val" id="ins-val-display">—</div>
+        </div>
+        <div class="insert-location-badge" id="ins-loc-badge">B+ Tree</div>
+      </div>
+      <div class="insert-hint">
+        Search this key <strong id="ins-threshold-hint">3</strong> times to auto-promote it to the AVL cache.
+      </div>
+    </div>
+
+    <div class="popup-footer">
+      <button class="btn-ghost popup-dismiss" id="insert-popup-dismiss">Close</button>
+      <button class="btn-primary" id="insert-popup-search">Search this key</button>
+    </div>
+
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(curl -s \"http://localhost:18080/insert?key=10&value=hello\")",
+      "Bash(curl -s \"http://localhost:18080/search?q=10\")",
+      "Bash(curl -s \"http://localhost:18080/search?q=999\")",
+      "Bash(curl -s \"http://localhost:18080/stats\")",
+      "Bash(grep -oP '\\\\$\\\\\\(\"\"[^\"\"]*\"\"\\\\\\)' \"c:/Kamran Btech/Sem 4/ADS/New/adaptive-indexing-engine/frontend/app.js\")",
+      "Bash(grep -o '\\\\$\\(\"\"[^\"\"]*\"\"\\)' \"c:/Kamran Btech/Sem 4/ADS/New/adaptive-indexing-engine/frontend/app.js\")",
+      "Read(//tmp/**)",
+      "Read(//c/Kamran Btech/Sem 4/ADS/New/adaptive-indexing-engine/**)",
+      "Bash(cmake --build build --config Debug)",
+      "Bash(taskkill /F /IM adaptive-indexing-engine.exe)",
+      "Bash(taskkill //F //IM adaptive-indexing-engine.exe)",
+      "Bash(curl -sv \"http://localhost:18080/stats\")",
+      "Bash(curl -sv \"http://localhost:18080/insert?key=1&value=test\")",
+      "Bash(curl -sv \"http://localhost:18080/search?q=1\")",
+      "Bash(curl -s -D - \"http://localhost:18080/insert?key=1&value=test\")",
+      "Bash(curl -s -D - \"http://localhost:18080/stats\")",
+      "Bash(curl -s -D - \"http://localhost:18080/\")",
+      "Bash(curl -s -D - -H \"Origin: null\" \"http://localhost:18080/stats\")",
+      "Bash(\"c:/Kamran Btech/Sem 4/ADS/New/adaptive-indexing-engine/build/Debug/adaptive-indexing-engine.exe\")",
+      "Bash(powershell -Command \"\\(Get-Item ''c:/Kamran Btech/Sem 4/ADS/New/adaptive-indexing-engine/build/Debug/adaptive-indexing-engine.exe''\\).LastWriteTime\")",
+      "Bash(curl -s -X OPTIONS -D - \"http://localhost:18080/stats\")"
+    ]
+  }
+}

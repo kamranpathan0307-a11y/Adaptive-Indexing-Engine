@@ -1,0 +1,572 @@
+================================================================
+        ADAPTIVE INDEXING ENGINE — PPT CONTENT
+        Advanced Data Structures | Semester 4
+================================================================
+
+----------------------------------------------------------------
+SLIDE 1 — TITLE SLIDE
+----------------------------------------------------------------
+
+Title:      Adaptive Indexing Engine
+Subtitle:   A Hybrid Key-Value Store using AVL Tree + B+ Tree
+            with Automatic Hot-Key Promotion
+
+Course:     Advanced Data Structures (ADS)
+Semester:   4th Semester — B.Tech CSE
+
+Presented by: [Your Name]
+Roll No:      [Your Roll Number]
+Guide:        [Professor Name]
+Institution:  [College Name]
+
+
+----------------------------------------------------------------
+SLIDE 2 — TABLE OF CONTENTS
+----------------------------------------------------------------
+
+1. Introduction
+2. Problem Statement
+3. Proposed Solution
+4. Tech Stack
+5. System Architecture
+6. Data Structures Used
+7. Algorithms & Working
+8. Adaptive Promotion Mechanism
+9. Complexity Analysis
+10. Live Dashboard Features
+11. Advantages over Alternatives
+12. Applications
+13. Future Scope
+14. Conclusion
+15. References
+
+
+----------------------------------------------------------------
+SLIDE 3 — INTRODUCTION
+----------------------------------------------------------------
+
+Heading: What is an Indexing Engine?
+
+• In computer science, an indexing engine organizes data so it
+  can be retrieved quickly using a key.
+
+• Traditional databases use a single data structure (e.g., B+ Tree)
+  for all data — both hot (frequently accessed) and cold (rarely accessed).
+
+• This is inefficient because:
+  - Hot data deserves faster in-memory access
+  - Cold data can remain in slower disk-based storage
+
+• Our project — the Adaptive Indexing Engine — solves this by
+  automatically detecting hot keys and promoting them to a faster
+  structure at runtime, without any manual configuration.
+
+Key Idea:
+  "Let the system learn which data is hot and optimize itself."
+
+
+----------------------------------------------------------------
+SLIDE 4 — PROBLEM STATEMENT
+----------------------------------------------------------------
+
+Heading: The Problem with Static Indexing
+
+Traditional single-structure approaches fail when:
+
+PROBLEM 1 — One size does not fit all
+  • A B+ Tree is great for sorted/range queries but slow for
+    repeated point lookups compared to in-memory structures.
+
+PROBLEM 2 — No awareness of access patterns
+  • Databases treat all keys equally, even if key "42" is
+    searched 1000 times and key "99" is searched once.
+
+PROBLEM 3 — Wasted memory/speed tradeoff
+  • Keeping everything in a fast in-memory tree wastes RAM.
+  • Keeping everything in a disk-based tree wastes time for hot keys.
+
+PROBLEM 4 — No automatic adaptation
+  • DBAs must manually tune indexes — costly and error-prone.
+
+Real-world impact:
+  • Database query engines, file systems, and caches all suffer
+    from this "cold-hot blindness" problem.
+
+
+----------------------------------------------------------------
+SLIDE 5 — PROPOSED SOLUTION
+----------------------------------------------------------------
+
+Heading: Adaptive Indexing — The Hybrid Approach
+
+Our Solution: Combine TWO data structures and migrate keys
+              between them based on real-time access frequency.
+
+┌─────────────────┐         ┌──────────────────┐
+│    B+ Tree      │  ──►    │    AVL Tree       │
+│  (Cold Store)   │ promote │  (Hot Cache)      │
+│  All keys start │         │  Frequent keys    │
+│  here           │         │  live here        │
+└─────────────────┘         └──────────────────┘
+
+How it works:
+  Step 1 → All new keys inserted into B+ Tree
+  Step 2 → Every search increments an access counter
+  Step 3 → When counter > threshold (default = 3),
+            key is PROMOTED to AVL Tree
+  Step 4 → Future searches hit AVL Tree first (faster)
+
+Result:
+  • Cold keys stay in B+ Tree — O(n/k) search, disk-like
+  • Hot keys move to AVL Tree — O(log n) search, in-memory
+  • System adapts automatically to workload
+
+
+----------------------------------------------------------------
+SLIDE 6 — TECH STACK
+----------------------------------------------------------------
+
+Heading: Technologies Used
+
+BACKEND:
+  Language     →  C++ (Standard: C++17)
+  Build Tool   →  CMake 3.20+
+  HTTP Server  →  Custom Crow-compatible server (header-only)
+  Data Format  →  JSON (serialized via Crow json::wvalue)
+  Compiler     →  MSVC (Visual Studio Build Tools, Windows)
+
+FRONTEND:
+  Markup       →  HTML5
+  Styling      →  CSS3 (Flexbox, Grid, Custom Properties, Animations)
+  Logic        →  Vanilla JavaScript (ES2020, async/await, fetch API)
+  Visualization→  SVG (dynamically generated via JavaScript)
+  HTTP Client  →  Browser fetch() API
+
+COMMUNICATION:
+  Protocol     →  HTTP/1.1 REST (GET requests)
+  Port         →  localhost:18080
+  CORS         →  Access-Control-Allow-Origin: * (server-side)
+
+NO external frameworks — No React, No jQuery, No Bootstrap.
+Everything is built from scratch for full transparency.
+
+
+----------------------------------------------------------------
+SLIDE 7 — SYSTEM ARCHITECTURE
+----------------------------------------------------------------
+
+Heading: How the System is Structured
+
+[Show diagram]
+
+  Browser (Frontend)
+      │
+      │  HTTP GET  /insert?key=&value=
+      │  HTTP GET  /search?q=
+      │  HTTP GET  /stats  (polled every 1 second)
+      │
+      ▼
+  C++ Crow HTTP Server (port 18080)
+      │
+      ▼
+  AdaptiveIndexingEngine  (engine.cpp)
+      │
+      ├──────────────────────────┐
+      ▼                          ▼
+  AVL Tree                   B+ Tree
+  (avl.cpp)                  (bplustree.cpp)
+  In-memory hot cache        Primary storage
+
+File Structure:
+  main.cpp        → HTTP server + route handlers
+  engine.cpp      → Core logic: insert, search, promote
+  avl.cpp         → AVL Tree: rotations, balance, snapshot
+  bplustree.cpp   → B+ Tree: insert, split, linked leaves
+  frontend/       → index.html + style.css + app.js
+
+
+----------------------------------------------------------------
+SLIDE 8 — DATA STRUCTURES USED
+----------------------------------------------------------------
+
+Heading: AVL Tree — Self-Balancing Binary Search Tree
+
+Definition:
+  A BST where the height difference between left and right
+  subtrees of any node (balance factor Δ) is always -1, 0, or +1.
+
+Properties:
+  • Height guaranteed ≤ 1.44 × log₂(n)
+  • Search: O(log n) worst case
+  • Insert: O(log n) with at most 2 rotations
+  • 4 rotation cases: LL, RR, LR, RL
+
+Node structure:
+  { key, value, height, accessCount, left*, right* }
+
+Why AVL for hot cache?
+  → Read-heavy workload → AVL's strict balance = faster search
+  → Better than Red-Black for lookup-dominant access patterns
+
+---
+
+Heading: B+ Tree — Leaf-Linked List Variant
+
+Definition:
+  An ordered tree where ALL data lives in leaf nodes,
+  and leaf nodes are connected as a singly-linked list.
+
+Properties:
+  • Leaf capacity: 4 keys per node (splits on overflow)
+  • All leaves linked in sorted order (like a linked list)
+  • Supports range queries via leaf traversal
+  • Split operation: mid-point split → two halves
+
+Node structure:
+  { keys[], values[], accessCounts[], next* }
+
+Why B+ Tree for primary storage?
+  → Disk-friendly page layout
+  → Sequential scan via leaf chain
+  → All data at same depth (uniform access)
+
+
+----------------------------------------------------------------
+SLIDE 9 — ALGORITHMS & WORKING
+----------------------------------------------------------------
+
+Heading: AVL Tree Rotations
+
+Right Rotation (LL Case):
+         z                  y
+        / \               /   \
+       y   T3    →       x     z
+      / \               / \   / \
+     x   T2            T1 T2 T2 T3
+
+Left Rotation (RR Case):
+     z                      y
+    / \                    /   \
+   T1   y       →         z     x
+       / \               / \   / \
+      T2   x            T1 T2 T3 T4
+
+Left-Right (LR): Left rotate child → Right rotate node
+Right-Left (RL): Right rotate child → Left rotate node
+
+---
+
+Heading: B+ Tree Leaf Split
+
+When a leaf has more than 4 keys:
+
+  Before: [10, 20, 30, 40, 50]   ← overflow!
+  mid = 2
+
+  After:
+  Leaf A: [10, 20]  →→→  Leaf B: [30, 40, 50]
+
+---
+
+Heading: INSERT Operation
+
+  1. Is key already in AVL? → Yes → update AVL node
+  2. No → insert into B+ Tree leaf (sorted position)
+  3. If leaf overflows → split leaf
+
+---
+
+Heading: SEARCH Operation
+
+  1. Check AVL Tree first (O(log n))
+     → Found? Return immediately ✓
+
+  2. Not in AVL → search B+ Tree
+     → Not found? Return 404
+
+  3. Found in B+ Tree → increment accessCount
+     → accessCount > threshold? → PROMOTE to AVL
+     → Otherwise return from B+
+
+
+----------------------------------------------------------------
+SLIDE 10 — ADAPTIVE PROMOTION MECHANISM
+----------------------------------------------------------------
+
+Heading: How Promotion Works — Step by Step
+
+Threshold = 3 (default, configurable via slider)
+
+  Search #1 on key 42 → B+ Tree  | accessCount = 1 | No promotion
+  Search #2 on key 42 → B+ Tree  | accessCount = 2 | No promotion
+  Search #3 on key 42 → B+ Tree  | accessCount = 3 | No promotion
+  Search #4 on key 42 → B+ Tree  | accessCount = 4 | 4 > 3 → PROMOTE!
+
+  Promotion steps:
+    a) bplus.remove(42) → returns { key, value, accessCount=4 }
+    b) avl.insert(42, value, initialAccessCount=4)
+    c) promotions counter++
+
+  Search #5 on key 42 → AVL Tree  | O(log n) fast path ✓
+
+Key insight:
+  • Access count is PRESERVED during promotion
+  • Once in AVL, always in AVL (no demotion)
+  • Every insert first goes to B+, AVL only holds hot keys
+
+Real-world analogy:
+  CPU L1 Cache (AVL) ←← promotes from ←← RAM/Disk (B+ Tree)
+
+
+----------------------------------------------------------------
+SLIDE 11 — COMPLEXITY ANALYSIS
+----------------------------------------------------------------
+
+Heading: Time & Space Complexity
+
+AVL TREE:
+  Operation     Time         Space      Notes
+  ─────────────────────────────────────────────────
+  Insert        O(log n)     O(log n)   Max 2 rotations
+  Search        O(log n)     O(1)       Iterative find()
+  Rotation      O(1)         O(1)       Pointer swaps only
+  Snapshot      O(n)         O(n)       In-order traversal
+
+B+ TREE (Leaf-Only):
+  Operation     Time         Notes
+  ──────────────────────────────────────────────────
+  Insert        O(n/k)       k = leaf capacity = 4
+  Search        O(n/k)       Linear scan through leaves
+  Remove        O(n)         Full leaf chain scan
+  Split         O(k)         Copy half-leaf to sibling
+  Range Scan    O(k + r)     r = result count
+
+ENGINE (Combined):
+  Operation            Time              Notes
+  ──────────────────────────────────────────────────────
+  insert(key)          O(n/k)            New key → B+
+  search — hot key     O(log n)          AVL fast path
+  search — cold key    O(n/k)            B+ scan
+  search + promote     O(n/k)+O(log n)   One-time cost
+  stats()              O(1)              Cached counters
+
+Space: O(n) total — each key exists in exactly ONE structure
+
+
+----------------------------------------------------------------
+SLIDE 12 — LIVE DASHBOARD FEATURES
+----------------------------------------------------------------
+
+Heading: Web Visualization Dashboard
+
+The project includes a real-time browser-based dashboard with:
+
+TAB 1 — INSERT
+  • Key (integer) + Value (string) input fields
+  • Insert button → calls /insert API
+  • Status message: "Inserted key X into B+ Tree"
+
+TAB 2 — SEARCH
+  • Key input → Search button → calls /search API
+  • Shows: value found, which tree, access count
+  • If key is in AVL → that node blinks once (event-based animation)
+
+TAB 3 — STATISTICS
+  • Live cards showing:
+    - AVL Node Count
+    - B+ Node Count
+    - Total Searches
+    - Promotions
+    - Cache Hit Ratio (AVL nodes / total keys × 100%)
+
+TAB 4 — DOCUMENTATION
+  • Built-in explanation of how the system works
+  • Complexity reference table
+
+VISUALIZATION PANEL (Insert + Search tabs):
+  • AVL Tree: SVG circles connected by lines
+    Each node shows: key, height (h:), balance factor (Δ:)
+    Promoted/hot nodes shown in amber color
+  • B+ Tree: Rectangular leaf blocks linked with → arrows
+    Hover a cell to see its access count
+  • Live Stats Sidebar: real-time counts, promotion threshold slider
+
+Animation rules:
+  • Nodes are STATIC by default — no continuous blinking
+  • Only the searched AVL node blinks ONCE after a search hit
+  • No looped CSS animations — purely event-driven
+
+
+----------------------------------------------------------------
+SLIDE 13 — ADVANTAGES OVER ALTERNATIVES
+----------------------------------------------------------------
+
+Heading: Why This Approach is Better
+
+vs. HASH TABLE ONLY:
+  Hash Table     → O(1) avg but O(n) worst, no order, no range query
+  Our Engine     → O(log n) guaranteed, sorted, supports range scan
+
+vs. PLAIN BST:
+  Plain BST      → Degrades to O(n) on sorted input (linked list)
+  Our AVL Tree   → Always balanced, O(log n) guaranteed
+
+vs. B+ TREE ONLY:
+  B+ Tree Only   → Treats hot and cold keys equally, O(n/k) always
+  Our Engine     → Hot keys promoted to O(log n) AVL — adaptive
+
+vs. RED-BLACK TREE:
+  Red-Black      → Looser balance, better for writes, complex coloring
+  AVL Tree       → Stricter balance, better for reads (our use case)
+
+vs. REDIS (in-memory cache):
+  Redis          → Entirely in memory, no disk-like tier, no B+ tree
+  Our Engine     → Two-tier: hot keys in memory, cold on disk-like B+
+
+vs. SQLITE / LEVELDB:
+  Static indexes → No runtime adaptation to access patterns
+  Our Engine     → Automatically migrates hot keys — zero config
+
+
+----------------------------------------------------------------
+SLIDE 14 — APPLICATIONS
+----------------------------------------------------------------
+
+Heading: Where This Concept is Used
+
+1. DATABASE BUFFER POOLS
+   → MySQL/PostgreSQL keep hot pages in buffer pool (RAM)
+     and cold pages on disk — same hot/cold concept
+
+2. CPU CACHE HIERARCHY
+   → L1 Cache (AVL) ← L2/L3/RAM (B+ Tree)
+     Hot instructions cached closer to CPU
+
+3. CONTENT DELIVERY NETWORKS (CDN)
+   → Hot content cached at edge servers
+     Cold content fetched from origin
+
+4. OPERATING SYSTEM PAGE REPLACEMENT
+   → LFU/LRU algorithms decide which pages stay in RAM
+     Our promotion = LFU-style promotion
+
+5. WEB SERVER CACHING
+   → Frequently requested URLs cached in memory
+     Rare URLs fetched from disk/DB each time
+
+6. SEARCH ENGINE INDEXES
+   → Hot query results cached in memory (like Elasticsearch)
+     Cold results served from disk index
+
+7. KEY-VALUE STORES
+   → Redis + RDB (disk) — same tier concept
+     Our engine is an educational model of this
+
+
+----------------------------------------------------------------
+SLIDE 15 — FUTURE SCOPE
+----------------------------------------------------------------
+
+Heading: What Can Be Added Next
+
+1. FULL B+ TREE WITH INTERNAL NODES
+   → Add separator nodes above leaf layer
+   → Reduces search from O(n/k) to O(log n)
+
+2. EVICTION POLICY (LRU/LFU)
+   → When AVL Tree exceeds max size,
+     demote least-recently-used keys back to B+
+
+3. PERSISTENCE / DISK STORAGE
+   → Write-ahead log (WAL) to save state across restarts
+   → Serialize tree to file on shutdown, reload on startup
+
+4. RANGE QUERY ENDPOINT
+   → GET /range?lo=10&hi=50 → return all keys in [10, 50]
+   → Use B+ leaf chain for efficient range scan
+
+5. MULTI-THREADING
+   → Reader-Writer locks for concurrent insert + search
+   → Multiple clients can query simultaneously
+
+6. CONFIGURABLE THRESHOLD PER KEY
+   → Different promotion thresholds for different key ranges
+   → Machine-learning based threshold tuning
+
+7. DEMOTION MECHANISM
+   → If an AVL key stops being accessed, move it back to B+
+   → Prevents AVL from growing unbounded
+
+8. BENCHMARK / PROFILING TAB
+   → Compare search time in AVL vs B+ in real time
+   → Show graph of access patterns over time
+
+
+----------------------------------------------------------------
+SLIDE 16 — CONCLUSION
+----------------------------------------------------------------
+
+Heading: Summary & Takeaways
+
+What we built:
+  ✓ A working hybrid key-value store in C++17
+  ✓ AVL Tree as an in-memory hot key cache
+  ✓ B+ Tree as a disk-like primary store
+  ✓ Automatic promotion based on access frequency
+  ✓ REST API server with JSON responses
+  ✓ Live web dashboard with real-time visualization
+  ✓ Event-based animations — no continuous blinking
+
+What we learned:
+  ✓ AVL rotations (LL, RR, LR, RL) — when and why
+  ✓ B+ Tree leaf splitting and linked-list structure
+  ✓ Trade-off between read speed and write overhead
+  ✓ How real databases solve the hot/cold data problem
+  ✓ Building a REST API backend in C++
+  ✓ SVG-based tree visualization in JavaScript
+
+Core message:
+  "A single data structure is never optimal for all workloads.
+   The best systems adapt to the data they serve."
+
+This project demonstrates that adaptive indexing —
+a concept used in production databases, CDNs, and OS caches —
+can be implemented clearly using foundational ADS concepts.
+
+
+----------------------------------------------------------------
+SLIDE 17 — REFERENCES
+----------------------------------------------------------------
+
+Heading: References
+
+[1] Adelson-Velsky, G.M. & Landis, E.M. (1962)
+    "An algorithm for the organization of information"
+    — Original AVL Tree paper
+
+[2] Comer, D. (1979)
+    "The Ubiquitous B-Tree"
+    ACM Computing Surveys, Vol. 11, No. 2
+
+[3] Knuth, D.E. (1998)
+    "The Art of Computer Programming, Volume 3: Sorting and Searching"
+    — B+ Tree and BST analysis
+
+[4] Graefe, G. & Idreos, S. (2010)
+    "B-tree Indexes and CPU Caches"
+    — Adaptive indexing concepts
+
+[5] Stroustrup, B. (2013)
+    "The C++ Programming Language, 4th Edition"
+    — C++17 features (std::optional, lambdas)
+
+[6] MDN Web Docs — fetch API, SVG, CSS Animations
+    https://developer.mozilla.org
+
+[7] CMake Documentation
+    https://cmake.org/documentation
+
+
+================================================================
+                    END OF PPT CONTENT
+================================================================

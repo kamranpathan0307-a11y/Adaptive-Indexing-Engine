@@ -1,0 +1,10 @@
+^C:\KAMRAN BTECH\SEM 4\ADS\NEW\ADAPTIVE-INDEXING-ENGINE\BUILD\CMAKEFILES\C3B2C6BB54D118EA279437290028A88F\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" "-SC:/Kamran Btech/Sem 4/ADS/New/adaptive-indexing-engine" "-BC:/Kamran Btech/Sem 4/ADS/New/adaptive-indexing-engine/build" --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file "C:/Kamran Btech/Sem 4/ADS/New/adaptive-indexing-engine/build/adaptive_indexing_engine.slnx"
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

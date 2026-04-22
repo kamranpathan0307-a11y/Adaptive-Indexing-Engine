@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Kamran Btech\Sem 4\ADS\New\adaptive-indexing-engine\build\CMakeFiles\c3b2c6bb54d118ea279437290028a88f\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{0D226DA5-D768-358C-AC83-B9F481107B0F}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
